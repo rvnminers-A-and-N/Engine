@@ -41,3 +41,7 @@ reactivex==4.0.4 #4.0.0b5
 
 # needed for lomb-scargle interpolation
 astropy==6.1.7
+
+# P2P networking support (optional - enables hybrid/p2p modes)
+# Set SATORI_NETWORKING_MODE=hybrid or SATORI_NETWORKING_MODE=p2p to enable
+satorip2p>=1.0.0

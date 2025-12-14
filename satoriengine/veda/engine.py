@@ -13,12 +13,34 @@ from satorilib.utils.system import getProcessorCount
 from satorilib.utils.time import datetimeToTimestamp, now
 from satorilib.datamanager import DataClient, DataServerApi, DataClientApi, PeerInfo, Message, Subscription
 from satorilib.wallet.evrmore.identity import EvrmoreIdentity
-from satorilib.centrifugo import (
-    create_centrifugo_client,
-    create_subscription_handler,
-    subscribe_to_stream
-)
 from satoriengine.veda import config
+
+# P2P Integration: Config-based networking mode selection for Centrifugo
+def _get_centrifugo_functions():
+    """Get the appropriate Centrifugo functions based on networking mode."""
+    import os
+    networking_mode = os.environ.get('SATORI_NETWORKING_MODE', 'central')
+
+    if networking_mode in ('hybrid', 'p2p', 'p2p_only'):
+        try:
+            from satorip2p.integration.neuron import create_p2p_centrifugo_client
+            # For P2P mode, we use the P2P client and stub out the other functions
+            async def p2p_subscription_handler(client, channel, handler):
+                await client.subscribe(channel, handler)
+            async def p2p_subscribe(client, channel, handler):
+                await client.subscribe(channel, handler)
+            return create_p2p_centrifugo_client, p2p_subscription_handler, p2p_subscribe
+        except ImportError:
+            pass  # Fall back to central
+
+    from satorilib.centrifugo import (
+        create_centrifugo_client,
+        create_subscription_handler,
+        subscribe_to_stream
+    )
+    return create_centrifugo_client, create_subscription_handler, subscribe_to_stream
+
+create_centrifugo_client, create_subscription_handler, subscribe_to_stream = _get_centrifugo_functions()
 from satoriengine.veda.data import StreamForecast, validate_single_entry
 from satoriengine.veda.adapters import ModelAdapter, StarterAdapter, XgbAdapter, XgbChronosAdapter
 
